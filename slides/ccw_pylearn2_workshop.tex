@@ -1,0 +1,504 @@
+%==============================================================================
+% PREAMBLE
+%==============================================================================
+\documentclass[mathserif, xcolor=dvipsnames]{beamer}
+% \usepackage{helvet}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath, amsfonts,amsthm}
+\usepackage{url}
+\usepackage{listings}
+\usepackage{color}
+
+\usetheme[height=10mm]{Rochester}
+\usecolortheme[named=MidnightBlue]{structure}
+\setbeamertemplate{navigation symbols}{}
+
+\title{CCW: Pylearn2}
+\subtitle{Not your grandfather's machine learning library}
+\author{Pascal Lamblin\\
+slides by Vincent Dumoulin}
+\date{October 2nd, 2014}
+
+%==============================================================================
+% BODY
+%==============================================================================
+\begin{document}
+
+%------------------------------------------------------------------------------
+% TITLE
+%------------------------------------------------------------------------------
+\begin{frame}[plain]
+    \titlepage
+\end{frame}
+
+%------------------------------------------------------------------------------
+% OBJECTIVES
+%------------------------------------------------------------------------------
+\begin{frame}
+    \frametitle{Objectives}
+    \begin{itemize}\addtolength{\itemsep}{0.5\baselineskip}
+        \item{
+            {\Large Manage an experiment using Pylearn2}
+            \begin{itemize}
+                \item{Anatomy of a \textbf{YAML} experiment file}
+                \item{The \textbf{train.py} script}
+            \end{itemize}
+        }
+        \item{
+            {\Large High-level understanding of Pylearn2}
+            \begin{itemize}
+                \item{\textbf{Train} object}
+                \item{\textbf{TrainingAlgorithm} object}
+                \item{\textbf{Model} object}
+                \item{\textbf{Dataset} object}
+                \item{\textbf{Cost} object}
+                \item{\textbf{Monitor} object}
+                \item{\textbf{TerminationCriterion} object}
+                \item{\textbf{TrainExtension} object}
+                \item{\textbf{utils} module}
+                \item{\textbf{scripts} directory}
+            \end{itemize}
+        }
+        \item{
+            {\Large Extend Pylearn2 to suit your needs}
+        }
+    \end{itemize}
+\end{frame}
+
+%------------------------------------------------------------------------------
+% WHAT
+%------------------------------------------------------------------------------
+\begin{frame}
+    \frametitle{What is Pylearn2?}
+    \begin{itemize}\addtolength{\itemsep}{2.0\baselineskip}
+        \item{\LARGE Machine learning \textbf{prototyping} library}
+        \item{\LARGE Built on top of Theano}
+        \item{\LARGE Easy to extend}
+    \end{itemize}
+\end{frame}
+
+%------------------------------------------------------------------------------
+% FOLLOW ALONG
+%------------------------------------------------------------------------------
+\begin{frame}
+    \frametitle{Accompanying material}
+    \begin{itemize}\addtolength{\itemsep}{3.0\baselineskip}
+        \item{\Large Make sure you have access to a machine that has Pylearn2
+              and its dependencies installed}
+        \item{\Large The whole presentation and accompanying material can be
+              found on Github here: \url{http://goo.gl/nuJw9R}}
+    \end{itemize}
+\end{frame}
+
+%------------------------------------------------------------------------------
+% CASE STUDY
+%------------------------------------------------------------------------------
+\begin{frame}[t]
+    \frametitle{Case study: softmax regression on MNIST digits
+                \footnote{Adapted from Ian Goodfellow's softmax regression
+                          iPython Notebook tutorial (\url{http://goo.gl/qSdAjA})}}
+
+    \begin{center}
+    \begin{minipage}{0.05\textwidth}
+    \begin{figure}[H]
+        \raggedleft
+        \includegraphics[width=\textwidth]{mnist_4.png}
+    \end{figure}
+    \end{minipage}
+    \begin{minipage}{0.9\textwidth}
+        \raggedright
+        $\Rightarrow ([0., 0., 0., \ldots, 0., 0.],
+                      [4])$
+    \end{minipage}
+    \end{center}
+
+    \begin{itemize}\addtolength{\itemsep}{2.0\baselineskip}
+        \item{Predict the class: learn $p(\mathbf{y} \mid \mathbf{x})$}
+        \item{$\mathbf{x} \in [0, 1]^{784}$ ($28 \times 28$ pixels unrolled
+              into a 784-dimension vector)}
+        \item{$\mathbf{y} \in \{0, 1, \ldots, 9\}$}
+    \end{itemize}
+\end{frame}
+
+%------------------------------------------------------------------------------
+% CASE STUDY
+%------------------------------------------------------------------------------
+\begin{frame}[t]
+    \frametitle{Case study: softmax regression on MNIST digits}
+
+    \begin{center}
+    \begin{minipage}{0.05\textwidth}
+    \begin{figure}[H]
+        \raggedleft
+        \includegraphics[width=\textwidth]{mnist_4.png}
+    \end{figure}
+    \end{minipage}
+    \begin{minipage}{0.9\textwidth}
+        \raggedright
+        $\Rightarrow ([0., 0., 0., \ldots, 0., 0.],
+                      [4])$
+    \end{minipage}
+    \end{center}
+
+    \begin{itemize}\addtolength{\itemsep}{0.5\baselineskip}
+        \item{
+            Model $p(\mathbf{y} \mid \mathbf{x})$ as
+            \begin{equation*}
+                p(\mathbf{y} \mid \mathbf{x})
+                = \text{softmax}(\mathbf{x}; \mathbf{W}, \mathbf{b})
+                = \frac{\exp(\mathbf{x}^T \mathbf{W} + \mathbf{b})}
+                       {\sum_i \exp(\mathbf{x}^T \mathbf{W} + \mathbf{b})_i}
+            \end{equation*}
+            with $\mathbf{W}$ a $784 \times 10$ matrix and $\mathbf{b}$ a
+            10-dimension vector
+        }
+        \item{
+            Measure performance using negative log-likelihood (NLL):
+            \begin{equation*}
+                \mathcal{L}(\mathcal{D}, \mathbf{W}, \mathbf{b})
+                = -\sum_{\mathbf{x}, \mathbf{y} \in \mathcal{D}}
+                    \log p(\mathbf{y} \mid \mathbf{x})
+            \end{equation*}
+        }
+        \item{
+            Train by stochastic gradient descent:
+            \begin{equation*}
+                \theta \gets \theta - \eta \nabla \mathcal{L}
+            \end{equation*}
+        }
+    \end{itemize}
+\end{frame}
+
+%------------------------------------------------------------------------------
+% HOW TO LAUNCH
+%------------------------------------------------------------------------------
+\begin{frame}[fragile]
+\frametitle{Launch an experiment: how-to}
+\begin{center}
+{\Huge Launch}
+
+\vspace{1cm}
+
+\lstset{escapechar=@, language=bash}
+\begin{lstlisting}
+$ python ${PYLEARN2_LOCATION}/scripts/train.py \
+> softmax_regression.yaml
+\end{lstlisting}
+
+\vspace{1cm}
+
+{\Huge What happened?}
+\end{center}
+
+\end{frame}
+
+%------------------------------------------------------------------------------
+% TRAIN.PY
+%------------------------------------------------------------------------------
+\begin{frame}
+    \frametitle{Launch an experiment: \textbf{train.py} script}
+    \Large
+    \begin{itemize}\addtolength{\itemsep}{2.0\baselineskip}
+        \item{Takes a YAML file as argument}
+        \item{Instantiates the object(s) listed in the file}
+        \item{Calls its (their) \textbf{main\_loop} method}
+    \end{itemize}
+
+\end{frame}
+
+%------------------------------------------------------------------------------
+% ANATOMY
+%------------------------------------------------------------------------------
+\begin{frame}[fragile]
+\frametitle{Launch an experiment: \textbf{YAML} anatomy}
+
+    \begin{itemize}\addtolength{\itemsep}{0.5\baselineskip}
+        \item{Object description or list of object descriptions}
+        \item{Instantiate an object with
+              \textbf{!obj:<package>[.<subpackage>]*.<module>.<object>}}
+        \item{Constructor arguments specified with \\
+              \textbf{\{ <name>: <value>, ..., <name>: <value>\}}}
+        \item{Objects are instantiated recursively}
+        \item{Set an anchor (reference) to an object with
+              \textbf{\&<anchorname> !obj: ...}}
+        \item{Refer to an anchor with \textbf{*<anchorname>}}
+        \item{For more details, see \url{http://deeplearning.net/software/pylearn2/yaml_tutorial/index.html}}
+    \end{itemize}
+
+\end{frame}
+
+%------------------------------------------------------------------------------
+% PYLEARN2 OVERVIEW
+%------------------------------------------------------------------------------
+\begin{frame}
+    \frametitle{Pylearn2 overview}
+
+    \begin{itemize}\addtolength{\itemsep}{0.5\baselineskip}
+        \item{
+            Train
+            \begin{itemize}\addtolength{\itemsep}{0.5\baselineskip}
+                \item{Dataset}
+                \item{Model}
+                \item{
+                    TrainingAlgorithm
+                    \begin{itemize}\addtolength{\itemsep}{0.5\baselineskip}
+                        \item{Monitor}
+                        \item{Cost}
+                        \item{TerminationCriterion}
+                    \end{itemize}
+                }
+                \item{TrainingExtension}
+            \end{itemize}
+        }
+        \item{utils}
+        \item{scripts}
+    \end{itemize}
+
+\end{frame}
+
+%------------------------------------------------------------------------------
+% TRAIN OBJECT
+%------------------------------------------------------------------------------
+\begin{frame}
+    \frametitle{Pylearn2 overview: \textbf{Train} object}
+    \Large
+    \begin{itemize}\addtolength{\itemsep}{1.0\baselineskip}
+        \item{Drives the main training loop}
+        \item{
+            Responsible for
+            \begin{itemize}\addtolength{\itemsep}{0.5\baselineskip}
+                \large
+                \item{Starting training}
+                \item{Stopping training}
+                \item{Putting together the training algorithm, the model and the
+                      dataset}
+                \item{Managing misc. tasks before and after each training epoch}
+                \item{Saving the trained model}
+            \end{itemize}
+        }
+    \end{itemize}
+
+\end{frame}
+
+%------------------------------------------------------------------------------
+% TRAININGALGORITHM OBJECT
+%------------------------------------------------------------------------------
+\begin{frame}
+    \frametitle{Pylearn2 overview: \textbf{TrainingAlgorithm} object}
+    \Large
+    \begin{itemize}\addtolength{\itemsep}{1.0\baselineskip}
+        \item{Drives the epoch training loop}
+        \item{
+            Responsible for
+            \begin{itemize}\addtolength{\itemsep}{0.5\baselineskip}
+                \large
+                \item{Setting up the model}
+                \item{Setting up the monitor}
+                \item{Compiling the Theano function for parameter updates}
+                \item{Doing one epoch's worth of parameter updates}
+                \item{Save information about a training epoch via the monitor}
+            \end{itemize}
+        }
+    \end{itemize}
+
+\end{frame}
+
+%------------------------------------------------------------------------------
+% MODEL OBJECT
+%------------------------------------------------------------------------------
+\begin{frame}
+    \frametitle{Pylearn2 overview: \textbf{Model} object}
+    \Large
+    \begin{itemize}\addtolength{\itemsep}{1.0\baselineskip}
+        \item{Represents the mathematical model you want to optimize}
+        \item{
+            Responsible for
+            \begin{itemize}\addtolength{\itemsep}{0.5\baselineskip}
+                \large
+                \item{Implementing the mapping from input to output that's
+                      described by the mathematical model}
+                \item{Describing the format of the data it expects to receive}
+                \item{Storing the model's parameters}
+            \end{itemize}
+        }
+        \item{There are multiple model frameworks (e.g. \textbf{MLP} and
+              \textbf{DBM}, each is specialized in a different way)}
+    \end{itemize}
+
+\end{frame}
+
+%------------------------------------------------------------------------------
+% DATASET OBJECT
+%------------------------------------------------------------------------------
+\begin{frame}
+    \frametitle{Pylearn2 overview: \textbf{Dataset} object}
+    \Large
+    \begin{itemize}\addtolength{\itemsep}{1.0\baselineskip}
+        \item{Wraps around the dataset on which you train}
+        \item{Common interface for all data}
+        \item{
+            Responsible for
+            \begin{itemize}\addtolength{\itemsep}{0.5\baselineskip}
+                \large
+                \item{Storing the data}
+                \item{Describing the format of the data it stores}
+                \item{Instantiating iterators to loop over the data}
+            \end{itemize}
+        }
+        \item{Main subclasses are \textbf{DenseDesignMatrix} and
+              \textbf{SparseDataset}}
+    \end{itemize}
+
+\end{frame}
+
+%------------------------------------------------------------------------------
+% COST OBJECT
+%------------------------------------------------------------------------------
+\begin{frame}
+    \frametitle{Pylearn2 overview: \textbf{Cost} object}
+    \Large
+    \begin{itemize}\addtolength{\itemsep}{1.0\baselineskip}
+        \item{Represents a performance metric you want to maximize for the model}
+        \item{
+            Responsible for
+            \begin{itemize}
+                \item{Mapping the input to the cost expression as a Theano
+                      expression}
+                \item{Mapping the input to the cost gradient as a Theano
+                      expression}
+                \item{Describing the format of the input data it expects}
+                \item{Describing cost-related quantities that are to be
+                      monitored during training}
+            \end{itemize}
+        }
+        \item{Possible to combine multiple costs using \textbf{SumOfCosts}}
+    \end{itemize}
+
+\end{frame}
+
+%------------------------------------------------------------------------------
+% MONITOR OBJECT
+%------------------------------------------------------------------------------
+\begin{frame}
+    \frametitle{Pylearn2 overview: \textbf{Monitor} object}
+    \begin{itemize}\addtolength{\itemsep}{0.5\baselineskip}
+        \item{Holds information relative to training}
+        \item{
+            Responsible for
+            \begin{itemize}\addtolength{\itemsep}{0.5\baselineskip}
+                \large
+                \item{Aggregating monitored quantities during training}
+                \item{Compiling Theano function mapping input data to monitored
+                      quantities}
+            \end{itemize}
+        }
+    \item{Monitored quantities are called \emph{channels} and are implemented in
+          the \textbf{MonitoringChannel} class}
+    \item{Can monitor over multiple datasets (e.g. training, validation and test
+          sets)}
+    \end{itemize}
+
+\end{frame}
+
+%------------------------------------------------------------------------------
+% TERMINATIONCRITERION OBJECT
+%------------------------------------------------------------------------------
+\begin{frame}
+    \frametitle{Pylearn2 overview: \textbf{TerminationCriterion} object}
+    \Large
+    \begin{itemize}\addtolength{\itemsep}{2.5\baselineskip}
+        \item{Determines when training has to stop}
+        \item{Gets called between each training epoch}
+    \end{itemize}
+
+\end{frame}
+
+%------------------------------------------------------------------------------
+% TRAINEXTENSION OBJECT
+%------------------------------------------------------------------------------
+\begin{frame}
+    \frametitle{Pylearn2 overview: \textbf{TrainExtension} object}
+    \Large
+    \begin{itemize}\addtolength{\itemsep}{1.0\baselineskip}
+        \item{Represents a misc. task to be performed during training}
+        \item{Gets called through \textbf{on\_monitor} (after the monitor has
+              been called), \textbf{on\_save} (after the model has been saved)
+              and \textbf{on\_setup} (right after the model has been
+              instantiated)}
+        \item{Use case: do early stopping (see \textbf{MonitorBasedSaveBest})}
+    \end{itemize}
+
+\end{frame}
+
+%------------------------------------------------------------------------------
+% UTILS MODULE
+%------------------------------------------------------------------------------
+\begin{frame}
+    \frametitle{Pylearn2 overview: \textbf{utils} module}
+    \begin{itemize}\addtolength{\itemsep}{0.5\baselineskip}
+        \item{
+            Lots of convenience functions: see
+            \begin{itemize} 
+                \item{\textbf{utils.sharedX}}
+                \item{\textbf{utils.safe\_update}}
+                \item{\textbf{utils.safe\_\{,i\}zip}}
+                \item{\textbf{utils.safe\_update}}
+                \item{\textbf{utils.function}}
+                \item{\textbf{utils.grad}}
+            \end{itemize} 
+        }
+        \item{
+            \textbf{utils.serial}: meet your new best friend
+            \begin{itemize}
+                \item{\textbf{serial.load}: handles pretty much everything
+                      related to loading files in various formats}
+                \item{\textbf{serial.save}: handles pretty much everything
+                      related to saving files in various formats}
+                \item{Other serialization convenience functions are available,
+                      you are encouraged to check them out on your own}
+            \end{itemize}
+        }
+    \end{itemize}
+
+\end{frame}
+
+%------------------------------------------------------------------------------
+% SCRIPTS DIRECTORY
+%------------------------------------------------------------------------------
+\begin{frame}
+    \frametitle{Pylearn2 overview: \textbf{scripts} directory}
+    \Large
+    \begin{itemize}\addtolength{\itemsep}{0.5\baselineskip}
+        \item{\textbf{plot\_monitor.py}: interactively lets you plot channels of
+              a trained model's monitor}
+        \item{\textbf{print\_monitor.py}: show all channel values of a trained
+              model's monitor after training}
+        \item{\textbf{show\_weights.py}: visually show a model's weights}
+        \item{Once again, you are encouraged to explore the \textbf{scripts}
+              directory on your own, lots of useful scripts are stored there}
+    \end{itemize}
+
+\end{frame}
+
+%------------------------------------------------------------------------------
+% EXTENDING
+%------------------------------------------------------------------------------
+\begin{frame}
+    \frametitle{Extending the library}
+    \LARGE
+    Pylearn2 doesn't do what you want?
+    \begin{itemize}\addtolength{\itemsep}{0.5\baselineskip}
+            \large
+            \item{Look at the \textbf{pylearn-users} mailing list
+                  (\url{https://groups.google.com/d/forum/pylearn-users}),
+                  the question might have been asked before}
+            \item{If nothing answers your question, ask it; there probably is
+                  something implemented but well-hidden}
+            \item{If nothing suits your needs, most of the time subclassing one
+                  element of the Pylearn2 library and overriding a few methods
+                  is sufficient}
+    \end{itemize}
+
+\end{frame}
+
+\end{document}
