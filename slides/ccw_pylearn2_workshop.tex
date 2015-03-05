@@ -17,7 +17,7 @@
 \subtitle{Not your grandfather's machine learning library}
 \author{Pascal Lamblin\\
 slides by Vincent Dumoulin}
-\date{October 2nd, 2014}
+\date{March 5th, 2015}
 
 %==============================================================================
 % BODY
@@ -86,7 +86,7 @@ slides by Vincent Dumoulin}
         \item{\Large Make sure you have access to a machine that has Pylearn2
               and its dependencies installed}
         \item{\Large The whole presentation and accompanying material can be
-              found on Github here: \url{http://goo.gl/nuJw9R}}
+              found on Github here: \url{https://github.com/lamblin/ccw\_tutorial}}
     \end{itemize}
 \end{frame}
 
@@ -498,7 +498,67 @@ $ python ${PYLEARN2_LOCATION}/scripts/train.py \
                   element of the Pylearn2 library and overriding a few methods
                   is sufficient}
     \end{itemize}
+\end{frame}
 
+%------------------------------------------------------------------------------
+% EXERCISE 1
+%------------------------------------------------------------------------------
+\begin{frame}
+    \frametitle{Exercise 1}
+    \LARGE Softmax regression
+    \begin{itemize}\addtolength{\itemsep}{0.5\baselineskip}
+            \large
+            \item{Have a look at \texttt{ccw\_tutorial/softmax\_regression.yaml}}
+            \item{Launch the training of that model}
+            \item{Plot some training curves}
+            \item{Plot the weights of the trained model}
+    \end{itemize}
+\end{frame}
+
+%------------------------------------------------------------------------------
+% EXERCISE 2
+%------------------------------------------------------------------------------
+\begin{frame}
+    \frametitle{Exercise 2}
+    \LARGE Convolutional Net
+    \begin{itemize}\addtolength{\itemsep}{0.5\baselineskip}
+            \large
+            \item{Edit \texttt{ccw\_tutorial/conv\_net.yaml}}
+            \item{Use only 1,000 examples for train, valid and test}
+            \item{Reduce the training phase to 5 epochs maximum}
+            \item{Launch the training of the model}
+    \end{itemize}
+\end{frame}
+
+%------------------------------------------------------------------------------
+% EXERCISE 3
+%------------------------------------------------------------------------------
+\begin{frame}
+    \frametitle{Exercise 3}
+    \LARGE Convolutional Net with Dropout
+    \begin{itemize}\addtolength{\itemsep}{0.5\baselineskip}
+            \large
+            \item{Edit \texttt{ccw\_tutorial/conv\_net.yaml}}
+            \item{Change the cost to use Dropout}
+            \item{Launch the training of the model}
+    \end{itemize}
+\end{frame}
+
+%------------------------------------------------------------------------------
+% EXERCISE 4
+%------------------------------------------------------------------------------
+\begin{frame}
+    \frametitle{Exercise 4}
+    \LARGE Pre-training with Denoising Autoencoder
+    \begin{itemize}\addtolength{\itemsep}{0.5\baselineskip}
+            \large
+            \item{Have a look at \texttt{dae\_l1.yaml},
+                  \texttt{dae\_l2.yaml}, \texttt{dae\_mlp.yaml}}
+            \item{Edit \texttt{dae\_mlp.yaml} to use only 1000 samples,
+                  and reduce fine-tuning to 5 epochs}
+            \item{Launch the training of \texttt{dae\_l1.yaml}, then
+                  \texttt{dae\_l2.yaml}, then \texttt{dae\_mlp.yaml}}
+    \end{itemize}
 \end{frame}
 
 \end{document}
