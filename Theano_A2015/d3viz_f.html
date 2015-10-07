@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<link rel="stylesheet" href="d3viz/css/d3viz.css"/>
+	<link rel="stylesheet" href="d3viz/css/d3-context-menu.css"/>
+	<script type="text/javascript" src="d3viz/js/d3viz.js"></script>
+	<script type="text/javascript" src="d3viz/js/d3.v3.min.js"></script>
+	<script type="text/javascript" src="d3viz/js/dagre-d3.min.js"></script>
+	<script type="text/javascript" src="d3viz/js/graphlib-dot.min.js"></script>
+	<script type="text/javascript" src="d3viz/js/d3-context-menu.js"></script>
+</head>
+<body>
+	<div id='menu' class='menuBar'>
+	    <input name="resetNodes" 
+	           type="button" 
+	           value="Reset nodes"
+	           onclick="resetNodes()"/>
+	    <input name="releaseNodes" 
+	           type="button" 
+	           value="Release nodes"
+	           onclick="releaseNodes()"/>
+	</div>
+
+	<script type="text/javascript">
+		// Backend graph in DOT format
+		var dotGraph = graphlibDot.read("digraph G {	graph [bb=\"0,0,486,384\"];	node [label=\"\N\"];	n1	 [apply_op=DimShuffle,		height=0.5,		label=DimShuffle,		node_type=apply,		pos=\"90,279\",		shape=ellipse,		width=1.4624];	n3	 [height=0.5,		pos=\"27,192\",		width=0.75];	n1 -> n3	 [label=dmatrix,		lp=\"54.5,235.5\",		pos=\"e,25.478,209.99 57.486,264.73 48.138,259.35 38.888,252.19 33,243 28.671,236.24 26.675,227.9 25.896,219.99\"];	n8	 [apply_op=CGemv,		height=0.5,		label=CGemv,		node_type=apply,		pos=\"310,105\",		shape=ellipse,		width=1.0652];	n1 -> n8	 [label=\"2 dscalar\",		lp=\"123.5,192\",		pos=\"e,271.35,106.36 86.198,260.8 82.289,238.3 79.239,198.81 99,174 137.84,125.24 212.01,110.96 261.24,107.05\"];	n2	 [dtype=dmatrix,		fillcolor=limegreen,		height=0.5,		label=W,		node_type=input,		pos=\"152,366\",		shape=box,		style=filled,		width=0.75];	n2 -> n1	 [color=dodgerblue,		label=dmatrix,		lp=\"146.5,322.5\",		pos=\"e,102.11,296.6 139.45,347.8 130.43,335.43 118.12,318.55 108.04,304.74\"];	n4	 [apply_op=Shape_i,		fillcolor=cyan,		height=0.5,		label=Shape_i,		node_type=apply,		pos=\"203,279\",		shape=ellipse,		style=filled,		type=colored,		width=1.0832];	n2 -> n4	 [label=dmatrix,		lp=\"202.5,322.5\",		pos=\"e,193.04,296.6 162.32,347.8 169.6,335.66 179.49,319.19 187.69,305.52\"];	n6	 [apply_op=AllocEmpty,		fillcolor=\"#FFAA22\",		height=0.5,		label=AllocEmpty,		node_type=apply,		pos=\"211,192\",		shape=ellipse,		style=filled,		type=colored,		width=1.4985];	n4 -> n6	 [label=dmatrix,		lp=\"229.5,235.5\",		pos=\"e,209.38,210.18 204.62,260.8 205.71,249.16 207.18,233.55 208.44,220.24\"];	n6 -> n8	 [color=red,		label=\"0 dmatrix\",		lp=\"279,148.5\",		pos=\"e,284.76,118.74 222.65,174 230.25,163.69 240.8,150.7 252,141 259.25,134.73 267.76,128.9 276,123.87\"];	n12	 [dtype=dvector,		fillcolor=dodgerblue,		height=0.5,		label=dvector,		node_type=output,		pos=\"310,18\",		shape=box,		style=filled,		width=0.79167];	n8 -> n12	 [label=dvector,		lp=\"330.5,61.5\",		pos=\"e,310,36.175 310,86.799 310,75.163 310,59.548 310,46.237\"];	n9	 [dtype=dscalar,		fillcolor=SpringGreen,		height=0.5,		label=\" 1.\",		node_type=constant_input,		pos=\"310,192\",		shape=box,		style=filled,		width=0.75];	n9 -> n8	 [label=\"1 dscalar\",		lp=\"334.5,148.5\",		pos=\"e,310,123.18 310,173.8 310,162.16 310,146.55 310,133.24\"];	n10	 [dtype=dvector,		fillcolor=limegreen,		height=0.5,		label=x,		node_type=input,		pos=\"382,192\",		shape=box,		style=filled,		width=0.75];	n10 -> n8	 [label=\"3 dvector\",		lp=\"394,148.5\",		pos=\"e,334.04,119.03 377.11,173.98 373.54,163.67 367.94,150.68 360,141 355.1,135.03 348.94,129.62 342.63,124.94\"];	n11	 [dtype=dscalar,		fillcolor=SpringGreen,		height=0.5,		label=\" 0.\",		node_type=constant_input,		pos=\"457,192\",		shape=box,		style=filled,		width=0.75];	n11 -> n8	 [label=\"4 dscalar\",		lp=\"461.5,148.5\",		pos=\"e,346.54,110.69 449.51,173.93 443.93,163.06 435.32,149.48 424,141 404.38,126.31 378.53,117.72 356.41,112.74\"];}");
+		// Frontend graph for visualization
+		var graph = {};
+		
+		var forceLayout;
+		var isProfiled = false; // true if profiling information available
+		var useProfileColors = false;
+		var fixOnInit = true; // fix nodes on initialization
+		var maxProfilePer = 0;
+		var profileColors = ["#fff5f0","#fee0d2","#fcbba1","#fc9272","#fb6a4a","#ef3b2c","#cb181d","#a50f15"];
+		var pad = 10;
+		var isEditNode = false; // true if node is edited
+		var menuItems = [
+			{
+				title: 'Edit',
+				action: function(elm, d, i) { editNode(elm, d); }
+			},
+			{
+				title: 'Release',
+				action: function(elm, d, i) { releaseNode(d); }
+			}
+		];
+
+		// Create main panel
+		d3.select('body').select('svg').remove();
+		var svg = d3.select('body').append('svg')
+			.attr('width', '100%')
+			.attr('height', '95%');
+		var pane = svg.append('g');
+		
+		// Zoom behaviour
+		var zoom = d3.behavior.zoom()
+			.scaleExtent([0.2, 8])
+			.on('zoom', function(d) {
+				var trans = d3.event.translate;
+				trans[0] += 300;
+				trans[1] += 100;
+				pane.attr('transform', 'translate(' + trans + ') scale(' + d3.event.scale + ')');
+			});
+		svg.call(zoom);
+		zoom.event(svg);
+		svg.on("dblclick.zoom", null);
+		
+		// Edges
+		var edgeDiv = d3.select('body').append('div')
+			.attr('class', 'edgeTooltip')
+			.style('opacity', 0.0);
+		
+		// Div for node details	
+		var nodeInfo = d3.select('body').append('div')
+			.attr('class', 'nodeInfo')
+			.style('opacity', 0.0);
+		
+		// Definition head of edges
+		var markerData = [
+			{'id': 'n', 'color': 'black'},
+			{'id': 'r', 'color': 'red'},
+			{'id': 'b', 'color': 'dodgerblue'}];
+		svg.append("defs").selectAll('marker').data(markerData).enter().append("marker")
+		    .attr("id", function(d) { return 'edgeArrow_' + d.id;})
+		    .attr("markerWidth", 4)
+		    .attr("markerHeight", 4)
+		    .attr("refX", 2)
+		    .attr("refY", 2)
+		    .attr("orient", "auto")
+		  	.append("path")
+		    .attr("d", "M0,0 L4,2 L0,4 Z")
+		    .attr('fill', function(d) { return d.color;});
+	
+		// Initialize graph
+		processDotGraph(dotGraph);		
+		graph = frontEndGraph(dotGraph);
+		drawGraph();
+	</script>
+</body>
+</html>
